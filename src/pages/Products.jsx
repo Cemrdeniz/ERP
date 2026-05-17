@@ -1,53 +1,102 @@
-import { useState } from "react";
-import { Table, Button, Modal, Form, Input, InputNumber } from "antd";
+import { useEffect, useState } from "react";
+import {
+  Table,
+  Button,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  Space,
+} from "antd";
 
 function Products() {
 
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Laptop",
-      stock: 10,
-      price: 20000,
-    },
-    {
-      id: 2,
-      name: "Mouse",
-      stock: 45,
-      price: 300,
-    },
-  ]);
+  const [products, setProducts] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [editingProduct, setEditingProduct] = useState(null);
+
   const [form] = Form.useForm();
 
-  // ürün ekle
-  const handleAddProduct = (values) => {
+  // localStorage'dan yükle
+  useEffect(() => {
 
-    const newProduct = {
-      id: Date.now(),
-      ...values,
-    };
+    const savedProducts =
+      JSON.parse(localStorage.getItem("products")) || [];
 
-    setProducts([...products, newProduct]);
+    setProducts(savedProducts);
+
+  }, []);
+
+  // localStorage'a kaydet
+  useEffect(() => {
+
+    localStorage.setItem(
+      "products",
+      JSON.stringify(products)
+    );
+
+  }, [products]);
+
+  // modal aç
+  const openModal = (product = null) => {
+
+    setEditingProduct(product);
+
+    setIsModalOpen(true);
+
+    if (product) {
+      form.setFieldsValue(product);
+    } else {
+      form.resetFields();
+    }
+  };
+
+  // ürün ekle / düzenle
+  const handleSubmit = (values) => {
+
+    if (editingProduct) {
+
+      const updatedProducts = products.map((item) =>
+        item.id === editingProduct.id
+          ? { ...item, ...values }
+          : item
+      );
+
+      setProducts(updatedProducts);
+
+    } else {
+
+      const newProduct = {
+        id: Date.now(),
+        ...values,
+      };
+
+      setProducts([...products, newProduct]);
+    }
 
     setIsModalOpen(false);
 
     form.resetFields();
+
+    setEditingProduct(null);
   };
 
-  // ürün sil
+  // sil
   const handleDelete = (id) => {
-    const filtered = products.filter((item) => item.id !== id);
+
+    const filtered = products.filter(
+      (item) => item.id !== id
+    );
 
     setProducts(filtered);
   };
 
-  // table kolonları
+  // tablo kolonları
   const columns = [
     {
-      title: "Ürün Adı",
+      title: "Ürün",
       dataIndex: "name",
     },
     {
@@ -59,11 +108,32 @@ function Products() {
       dataIndex: "price",
     },
     {
+      title: "Durum",
+      render: (_, record) => (
+        record.stock < 5
+          ? "Düşük Stok"
+          : "Normal"
+      ),
+    },
+    {
       title: "İşlem",
       render: (_, record) => (
-        <Button danger onClick={() => handleDelete(record.id)}>
-          Sil
-        </Button>
+        <Space>
+
+          <Button
+            onClick={() => openModal(record)}
+          >
+            Düzenle
+          </Button>
+
+          <Button
+            danger
+            onClick={() => handleDelete(record.id)}
+          >
+            Sil
+          </Button>
+
+        </Space>
       ),
     },
   ];
@@ -78,11 +148,16 @@ function Products() {
           marginBottom: "20px",
         }}
       >
+
         <h1>Ürün Yönetimi</h1>
 
-        <Button type="primary" onClick={() => setIsModalOpen(true)}>
+        <Button
+          type="primary"
+          onClick={() => openModal()}
+        >
           Ürün Ekle
         </Button>
+
       </div>
 
       <Table
@@ -92,7 +167,11 @@ function Products() {
       />
 
       <Modal
-        title="Yeni Ürün"
+        title={
+          editingProduct
+            ? "Ürün Düzenle"
+            : "Yeni Ürün"
+        }
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
@@ -101,7 +180,7 @@ function Products() {
         <Form
           layout="vertical"
           form={form}
-          onFinish={handleAddProduct}
+          onFinish={handleSubmit}
         >
 
           <Form.Item
@@ -117,7 +196,9 @@ function Products() {
             name="stock"
             rules={[{ required: true }]}
           >
-            <InputNumber style={{ width: "100%" }} />
+            <InputNumber
+              style={{ width: "100%" }}
+            />
           </Form.Item>
 
           <Form.Item
@@ -125,10 +206,16 @@ function Products() {
             name="price"
             rules={[{ required: true }]}
           >
-            <InputNumber style={{ width: "100%" }} />
+            <InputNumber
+              style={{ width: "100%" }}
+            />
           </Form.Item>
 
-          <Button type="primary" htmlType="submit" block>
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+          >
             Kaydet
           </Button>
 
