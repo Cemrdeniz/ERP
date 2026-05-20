@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import {
   Table,
   Button,
@@ -9,88 +10,47 @@ import {
   Space,
 } from "antd";
 
+import api from "../services/api";
+
 function Products() {
 
   const [products, setProducts] = useState([]);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [isModalOpen, setIsModalOpen] =
+    useState(false);
 
   const [form] = Form.useForm();
 
-  // localStorage'dan yükle
-  useEffect(() => {
+  // ürünleri getir
+  const fetchProducts = async () => {
 
-    const savedProducts =
-      JSON.parse(localStorage.getItem("products")) || [];
+    const res = await api.get("/products");
 
-    setProducts(savedProducts);
-
-  }, []);
-
-  // localStorage'a kaydet
-  useEffect(() => {
-
-    localStorage.setItem(
-      "products",
-      JSON.stringify(products)
-    );
-
-  }, [products]);
-
-  // modal aç
-  const openModal = (product = null) => {
-
-    setEditingProduct(product);
-
-    setIsModalOpen(true);
-
-    if (product) {
-      form.setFieldsValue(product);
-    } else {
-      form.resetFields();
-    }
+    setProducts(res.data);
   };
 
-  // ürün ekle / düzenle
-  const handleSubmit = (values) => {
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-    if (editingProduct) {
+  // ürün ekle
+  const handleSubmit = async (values) => {
 
-      const updatedProducts = products.map((item) =>
-        item.id === editingProduct.id
-          ? { ...item, ...values }
-          : item
-      );
+    await api.post("/products", values);
 
-      setProducts(updatedProducts);
-
-    } else {
-
-      const newProduct = {
-        id: Date.now(),
-        ...values,
-      };
-
-      setProducts([...products, newProduct]);
-    }
+    fetchProducts();
 
     setIsModalOpen(false);
 
     form.resetFields();
-
-    setEditingProduct(null);
   };
 
-  // sil
-  const handleDelete = (id) => {
+  // ürün sil
+  const handleDelete = async (id) => {
 
-    const filtered = products.filter(
-      (item) => item.id !== id
-    );
+    await api.delete(`/products/${id}`);
 
-    setProducts(filtered);
+    fetchProducts();
   };
 
   // tablo kolonları
@@ -109,11 +69,10 @@ function Products() {
     },
     {
       title: "Durum",
-      render: (_, record) => (
+      render: (_, record) =>
         record.stock < 5
           ? "Düşük Stok"
-          : "Normal"
-      ),
+          : "Normal",
     },
     {
       title: "İşlem",
@@ -121,14 +80,10 @@ function Products() {
         <Space>
 
           <Button
-            onClick={() => openModal(record)}
-          >
-            Düzenle
-          </Button>
-
-          <Button
             danger
-            onClick={() => handleDelete(record.id)}
+            onClick={() =>
+              handleDelete(record._id)
+            }
           >
             Sil
           </Button>
@@ -153,7 +108,9 @@ function Products() {
 
         <Button
           type="primary"
-          onClick={() => openModal()}
+          onClick={() =>
+            setIsModalOpen(true)
+          }
         >
           Ürün Ekle
         </Button>
@@ -163,17 +120,15 @@ function Products() {
       <Table
         columns={columns}
         dataSource={products}
-        rowKey="id"
+        rowKey="_id"
       />
 
       <Modal
-        title={
-          editingProduct
-            ? "Ürün Düzenle"
-            : "Yeni Ürün"
-        }
+        title="Yeni Ürün"
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={() =>
+          setIsModalOpen(false)
+        }
         footer={null}
       >
 
@@ -186,7 +141,9 @@ function Products() {
           <Form.Item
             label="Ürün Adı"
             name="name"
-            rules={[{ required: true }]}
+            rules={[
+              { required: true },
+            ]}
           >
             <Input />
           </Form.Item>
@@ -194,20 +151,28 @@ function Products() {
           <Form.Item
             label="Stok"
             name="stock"
-            rules={[{ required: true }]}
+            rules={[
+              { required: true },
+            ]}
           >
             <InputNumber
-              style={{ width: "100%" }}
+              style={{
+                width: "100%",
+              }}
             />
           </Form.Item>
 
           <Form.Item
             label="Fiyat"
             name="price"
-            rules={[{ required: true }]}
+            rules={[
+              { required: true },
+            ]}
           >
             <InputNumber
-              style={{ width: "100%" }}
+              style={{
+                width: "100%",
+              }}
             />
           </Form.Item>
 
